@@ -37,7 +37,8 @@ if uploaded_files is not None and len(uploaded_files) >= 2:
         llm = ChatOpenAI(api_key=st.secrets["OPENAI_API_KEY"], model="gpt-4-0125-preview", temperature=0, streaming=True)
         chain = prompt | llm | StrOutputParser()
         return chain.stream({
-            "document_text": document1_text + document2_text,
+            "document1_text": document1_text
+            "document2_text": document2_text,
             "user_question": user_question
         })
 

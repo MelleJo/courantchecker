@@ -4,64 +4,51 @@ from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 
-st.header("Rekening courant checker")
-uploaded_files = st.file_uploader("Upload pdf's", accept_multiple_files=True)
+st.header("Rekening Courant Checker")
 
-if uploaded_files is not None and len(uploaded_files) >= 2:
-    # Initialize PDF readers for both documents
+uploaded_files = st.file_uploader("Upload PDFs", accept_multiple_files=True)
+
+if uploaded_files and len(uploaded_files) == 2:
     file1, file2 = PdfReader(uploaded_files[0]), PdfReader(uploaded_files[1])
-    # Attempt to retrieve the document titles
-    title1 = file1.metadata.get('/Title', 'Unknown Title for Document 1')
-    title2 = file2.metadata.get('/Title', 'Unknown Title for Document 2')
-    st.write(f"Document 1: {title1}\nDocument 2: {title2}")
-    
-    # Extract text from each document
     text1, text2 = "", ""
     for page in file1.pages:
         text1 += page.extract_text() + "\n"
     for page in file2.pages:
         text2 += page.extract_text() + "\n"
 
-    def process_document(user_question):
-        # Debugging: Print the first 100 characters of each document and the user question
-        print(f"Debug Document 1 Text: {text1[:100]}")
-        print(f"Debug Document 2 Text: {text2[:100]}")
-        print(f"Debug User Question: {user_question}")
-        
-        # Define the prompt template
-        template = """
-        Here's the question from the user: {user_question}
-        
-        Based on the information in Document 1:
-        {document1_text}
-        
-        And Document 2:
-        {document2_text}
-        
-        Please provide a comprehensive response.
-        """
-        prompt = ChatPromptTemplate.from_template(template)
+    def process_document(user_question, text1, text2):
+        # Updated prompt for direct execution
+        template = f"""
+        As an AI with expertise in bookkeeping, analyze the following financial documents to answer the user's question. Focus especially on identifying discrepancies, inaccuracies, or notable financial data points. Provide clear findings and summaries directly, without explaining the process to the user.
 
-        llm = ChatOpenAI(api_key=st.secrets["OPENAI_API_KEY"], model="gpt-4-0125-preview", temperature=0, streaming=True)
+        User's question: "{user_question}"
+
+        Document 1 contains the following details:
+        {text1}
+
+        Document 2 contains these specifics:
+        {text2}
+
+        Based on the content of Document 1 and Document 2, directly address the user's query, emphasizing any discrepancies found.
+        """
+
+        prompt = ChatPromptTemplate.from_template(template)
+        llm = ChatOpenAI(api_key=st.secrets["OPENAI_API_KEY"], model="gpt-4-0125-preview", temperature=0.5, streaming=True)
         chain = prompt | llm | StrOutputParser()
         
-        # Stream the response, ensuring variables match the template
-        document_stream = chain.stream({
-            "user_question": user_question,
-            "document1_text": text1,
-            "document2_text": text2
+        responses = chain.stream({
+            "user_question": user_question
         })
 
         full_response = ""
-        for response in document_stream:
+        for response in responses:
             full_response += response + " "
-        return " ".join(full_response.split())
+        return full_response.strip()
 
-    st.title("Courant Checker")
     user_question = st.text_input("Stel een vraag over de documenten:")
     
     if user_question:
-        consolidated_response = process_document(user_question)
-        st.write(consolidated_response)
+        response = process_document(user_question, text1, text2)
+        st.write(response)
 else:
-    st.error("Please upload at least two PDF files.")
+    st.error("Please upload exactly two PDF files.")

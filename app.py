@@ -26,10 +26,10 @@ def compare_excel_files(file1, file2):
 
 
 # Streamlit UI
-st.title('Excel Comparison Tool')
+st.title('Courant checker')
 
-file1 = st.file_uploader("Choose the first Excel file", type=['xlsx'])
-file2 = st.file_uploader("Choose the second Excel file", type=['xlsx'])
+file1 = st.file_uploader("Kies bestand 1", type=['xlsx', 'csv', 'txt', 'pdf'])
+file2 = st.file_uploader("Kies bestand 2", type=['xlsx', 'csv', 'txt', 'pdf'])
 
 if file1 and file2:
     result = compare_excel_files(file1, file2)

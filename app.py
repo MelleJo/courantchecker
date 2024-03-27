@@ -1,40 +1,25 @@
 import streamlit as st
-import pandas as pd
-
-def compare_excel_files(file1, file2):
-    # Load the Excel files
-    df1 = pd.read_excel(file1)
-    df2 = pd.read_excel(file2)
-
-    # Check column names
-    st.write("Columns in the first file:", df1.columns.tolist())
-    st.write("Columns in the second file:", df2.columns.tolist())
-
-    # Verify 'polisnummer' exists in both DataFrames
-    if 'polisnummer' not in df1.columns or 'polisnummer' not in df2.columns:
-        st.error("'polisnummer' column is missing in one of the files.")
-        return pd.DataFrame()  # Return an empty DataFrame
-
-    # Continue with the original logic if the column exists
-    merged_df = pd.merge(df1, df2, on='polisnummer', suffixes=('_file1', '_file2'))
-
-    # Find mismatches in 'debet' and 'credit'
-    mismatches = merged_df[(merged_df['debet_file1'] != merged_df['debet_file2']) | 
-                           (merged_df['credit_file1'] != merged_df['credit_file2'])]
-
-    return mismatches[['polisnummer', 'debet_file1', 'debet_file2', 'credit_file1', 'credit_file2']]
+import os 
+from PyPDF2 import PdfReader
+from langchain.text_splitter import CharacterTextSplitter
+from langchain_community.vectorstores import FAISS
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain.chains import AnalyzeDocumentChain
+from langchain_community.callbacks import get_openai_callback
+from langchain.chains.question_answering import load_qa_chain
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate
 
 
-# Streamlit UI
-st.title('Courant checker')
+st.header("Rekening courant checker")
+uploaded_files = st.file_uploader("Upload pdf's", accept_multiple_files=True)
+if uploaded_files is not None:
+    file1 = PdfReader(uploaded_files[0])
+    file2 = PdfReader(uploaded_files[1])
+    st.write(f"Bestand 1: {file1.getDocumentInfo().title}\nBestand 2: {file2.getDocumentInfo().title}")
+    st.write("Voer de query uit, en de tool zal de twee bestanden vergelijken.")
 
-file1 = st.file_uploader("Kies bestand 1", type=['xlsx', 'csv', 'txt', 'pdf'])
-file2 = st.file_uploader("Kies bestand 2", type=['xlsx', 'csv', 'txt', 'pdf'])
 
-if file1 and file2:
-    result = compare_excel_files(file1, file2)
-    if not result.empty:
-        st.write("Mismatched Entries:")
-        st.dataframe(result)
-    else:
-        st.success("All transactions match between the documents.")
+
+

@@ -1,6 +1,5 @@
 import streamlit as st
 from PyPDF2 import PdfReader
-from langchain.text_splitter import CharacterTextSplitter
 from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
@@ -8,11 +7,13 @@ from langchain_core.prompts import ChatPromptTemplate
 st.header("Rekening courant checker")
 uploaded_files = st.file_uploader("Upload pdf's", accept_multiple_files=True)
 
-# Check if at least two files have been uploaded
 if uploaded_files is not None and len(uploaded_files) >= 2:
     file1 = PdfReader(uploaded_files[0])
     file2 = PdfReader(uploaded_files[1])
-    st.write(f"Bestand 1: {file1.getDocumentInfo().title}\nBestand 2: {file2.getDocumentInfo().title}")
+    # Updated to use metadata
+    title1 = file1.metadata.get('/Title', 'Unknown Title for Bestand 1')
+    title2 = file2.metadata.get('/Title', 'Unknown Title for Bestand 2')
+    st.write(f"Bestand 1: {title1}\nBestand 2: {title2}")
     st.write("Voer de query uit, en de tool zal de twee bestanden vergelijken.")
 
     text1 = ""

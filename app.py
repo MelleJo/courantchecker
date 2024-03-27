@@ -1,20 +1,21 @@
 import streamlit as st
 from PyPDF2 import PdfReader
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 
-# Initialize the header and file uploader in the Streamlit app
 st.header("Rekening courant checker")
 uploaded_files = st.file_uploader("Upload pdf's", accept_multiple_files=True)
 
-# Check if two files have been uploaded
 if uploaded_files is not None and len(uploaded_files) >= 2:
+    # Initialize PDF readers for both documents
     file1, file2 = PdfReader(uploaded_files[0]), PdfReader(uploaded_files[1])
-    title1, title2 = file1.metadata.get('/Title', 'Unknown Title for Document 1'), file2.metadata.get('/Title', 'Unknown Title for Document 2')
+    # Attempt to retrieve the document titles
+    title1 = file1.metadata.get('/Title', 'Unknown Title for Document 1')
+    title2 = file2.metadata.get('/Title', 'Unknown Title for Document 2')
     st.write(f"Document 1: {title1}\nDocument 2: {title2}")
     
-    # Extract text from PDF files
+    # Extract text from each document
     text1, text2 = "", ""
     for page in file1.pages:
         text1 += page.extract_text() + "\n"
@@ -22,20 +23,37 @@ if uploaded_files is not None and len(uploaded_files) >= 2:
         text2 += page.extract_text() + "\n"
 
     def process_document(user_question):
-        # Format the prompt with the extracted texts and user question
-        template = """..."""  # Use your detailed prompt template here
+        # Debugging: Print the first 100 characters of each document and the user question
+        print(f"Debug Document 1 Text: {text1[:100]}")
+        print(f"Debug Document 2 Text: {text2[:100]}")
+        print(f"Debug User Question: {user_question}")
         
+        # Define the prompt template
+        template = """
+        Here's the question from the user: {user_question}
+        
+        Based on the information in Document 1:
+        {document1_text}
+        
+        And Document 2:
+        {document2_text}
+        
+        Please provide a comprehensive response.
+        """
         prompt = ChatPromptTemplate.from_template(template)
+
         llm = ChatOpenAI(api_key=st.secrets["OPENAI_API_KEY"], model="gpt-4-0125-preview", temperature=0, streaming=True)
         chain = prompt | llm | StrOutputParser()
-
-        # Stream responses and concatenate them into a single string
-        full_response = ""
-        for response in chain.stream({
+        
+        # Stream the response, ensuring variables match the template
+        document_stream = chain.stream({
+            "user_question": user_question,
             "document1_text": text1,
-            "document2_text": text2,
-            "user_question": user_question
-        }):
+            "document2_text": text2
+        })
+
+        full_response = ""
+        for response in document_stream:
             full_response += response + " "
         return " ".join(full_response.split())
 
@@ -43,7 +61,6 @@ if uploaded_files is not None and len(uploaded_files) >= 2:
     user_question = st.text_input("Stel een vraag over de documenten:")
     
     if user_question:
-        # Process the document and display the consolidated response
         consolidated_response = process_document(user_question)
         st.write(consolidated_response)
 else:

@@ -29,9 +29,9 @@ if uploaded_files is not None and len(uploaded_files) >= 2:
         document2_text = text2
 
         template = """
-        Jij bent een expert boekhouder en accountant. Je beantwoord de {user_question} over de volgende documenten: {document1_text} en {document2_text}.
-        Hierbij stel je nauwkeurigheid en volledigheid op prioriteit nummer 1. 
+        Jij bent een expert boekhouder en accountant met diepgaande kennis van financiële documenten. Gebaseerd op de informatie in document 1: {document1_text} en document 2: {document2_text}, beantwoord de volgende vraag van de gebruiker: {user_question}. Zorg ervoor dat je antwoord nuttige inzichten of vergelijkingen bevat die helpen om de vraag grondig te beantwoorden.
         """
+
         prompt = ChatPromptTemplate.from_template(template)
 
         llm = ChatOpenAI(api_key=st.secrets["OPENAI_API_KEY"], model="gpt-4-0125-preview", temperature=0, streaming=True)

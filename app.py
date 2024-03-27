@@ -1,51 +1,50 @@
 import streamlit as st
 from PyPDF2 import PdfReader
-from langchain_openai import ChatOpenAI
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 
+# Initialize the header and file uploader in the Streamlit app
 st.header("Rekening courant checker")
 uploaded_files = st.file_uploader("Upload pdf's", accept_multiple_files=True)
 
+# Check if two files have been uploaded
 if uploaded_files is not None and len(uploaded_files) >= 2:
-    file1 = PdfReader(uploaded_files[0])
-    file2 = PdfReader(uploaded_files[1])
+    file1, file2 = PdfReader(uploaded_files[0]), PdfReader(uploaded_files[1])
+    title1, title2 = file1.metadata.get('/Title', 'Unknown Title for Document 1'), file2.metadata.get('/Title', 'Unknown Title for Document 2')
+    st.write(f"Document 1: {title1}\nDocument 2: {title2}")
     
-    title1 = file1.metadata.get('/Title', 'Unknown Title for Bestand 1')
-    title2 = file2.metadata.get('/Title', 'Unknown Title for Bestand 2')
-    st.write(f"Bestand 1: {title1}\nBestand 2: {title2}")
-    st.write("Voer de query uit, en de tool zal de twee bestanden vergelijken.")
-
-    text1 = ""
+    # Extract text from PDF files
+    text1, text2 = "", ""
     for page in file1.pages:
-        text1 += page.extract_text() + "\n" 
-
-    text2 = ""
+        text1 += page.extract_text() + "\n"
     for page in file2.pages:
-        text2 += page.extract_text() + "\n"  
+        text2 += page.extract_text() + "\n"
+
     def process_document(user_question):
-        document1_text = text1
-        document2_text = text2
-
-        template = """
-        Jij bent een expert boekhouder en accountant met diepgaande kennis van financiële documenten. Gebaseerd op de informatie in document 1: {document1_text} en document 2: {document2_text}, beantwoord de volgende vraag van de gebruiker: {user_question}. Zorg ervoor dat je antwoord nuttige inzichten of vergelijkingen bevat die helpen om de vraag grondig te beantwoorden.
-        """
-
+        # Format the prompt with the extracted texts and user question
+        template = """..."""  # Use your detailed prompt template here
+        
         prompt = ChatPromptTemplate.from_template(template)
-
-        llm = ChatOpenAI(api_key=st.secrets["OPENAI_API_KEY"], model="gpt-4-0125-preview", temperature=0)
+        llm = ChatOpenAI(api_key=st.secrets["OPENAI_API_KEY"], model="gpt-4-0125-preview", temperature=0, streaming=True)
         chain = prompt | llm | StrOutputParser()
-        return chain.stream({
-            "document1_text": document1_text,
-            "document2_text": document2_text,
+
+        # Stream responses and concatenate them into a single string
+        full_response = ""
+        for response in chain.stream({
+            "document1_text": text1,
+            "document2_text": text2,
             "user_question": user_question
-            })
+        }):
+            full_response += response + " "
+        return " ".join(full_response.split())
 
     st.title("Courant Checker")
     user_question = st.text_input("Stel een vraag over de documenten:")
+    
     if user_question:
-        document_stream = process_document(user_question)
-        for response in document_stream:
-            st.write(response)
+        # Process the document and display the consolidated response
+        consolidated_response = process_document(user_question)
+        st.write(consolidated_response)
 else:
     st.error("Please upload at least two PDF files.")

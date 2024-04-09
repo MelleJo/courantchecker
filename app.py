@@ -33,17 +33,17 @@ if uploaded_files and len(uploaded_files) == 2:
     def process_document(user_question, text1, text2):
         
         template = f"""
-        As an AI with expertise in bookkeeping, analyze the following financial documents to answer the user's question. Focus especially on identifying discrepancies, inaccuracies, or notable financial data points. Provide clear findings and summaries directly, without explaining the process to the user.
+        Before answering the user's question, first correct any irregular spacing, formatting issues, or broken words in the financial documents provided below. Ensure the text is neatly formatted and easy to read. Then, analyze the corrected documents to answer the user's question, focusing especially on identifying discrepancies, inaccuracies, or notable financial data points. Provide clear findings and summaries directly, without explaining the process to the user.
 
         User's question: "{user_question}"
 
-        Document 1 contains the following details:
+        Corrected Document 1:
         {text1}
 
-        Document 2 contains these specifics:
+        Corrected Document 2:
         {text2}
 
-        Based on the content of Document 1 and Document 2, directly address the user's query, emphasizing any discrepancies found.
+        After ensuring the documents are correctly formatted, directly address the user's query, emphasizing any discrepancies found.
         """
 
         prompt = ChatPromptTemplate.from_template(template)

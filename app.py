@@ -33,21 +33,21 @@ if uploaded_files and len(uploaded_files) == 2:
     def process_document(user_question, text1, text2):
         
         template = f"""
-        Before answering the user's question, first correct any irregular spacing, formatting issues, or broken words in the financial documents provided below. Ensure the text is neatly formatted and easy to read. Then, analyze the corrected documents to answer the user's question, focusing especially on identifying discrepancies, inaccuracies, or notable financial data points. Provide clear findings and summaries directly, without explaining the process to the user.
+        Jij bent een expert boekhouder en bent getraind op het herkennen van bedragen die niet overeenkomen in de rekening courant.
 
-        User's question: "{user_question}"
+        De gebruiker stelt een vraag die je beantwoord: "{user_question}"
 
-        Corrected Document 1:
+        Document 1:
         {text1}
 
-        Corrected Document 2:
+        Document 2:
         {text2}
 
-        After ensuring the documents are correctly formatted, directly address the user's query, emphasizing any discrepancies found.
+        Nadat je de vraag hebt beantwoord, zorg je dat je het antwoord aanlevert in een format dat duidelijk te lezen is zonder gekke spacing tussen de woorden. Dit dubbelcheck je.
         """
 
         prompt = ChatPromptTemplate.from_template(template)
-        llm = ChatOpenAI(api_key=st.secrets["OPENAI_API_KEY"], model="gpt-4-0125-preview", temperature=0.5, streaming=True)
+        llm = ChatOpenAI(api_key=st.secrets["OPENAI_API_KEY"], model="gpt-4-0125-preview", temperature=0, streaming=True)
         chain = prompt | llm | StrOutputParser()
         
         responses = chain.stream({

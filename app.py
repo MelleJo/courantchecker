@@ -4,34 +4,38 @@ from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 import re
+import pytesseract
+from PIL import Image
+import pdf2image
 
 st.header("Rekening Courant Checker")
 
 uploaded_files = st.file_uploader("Upload PDFs", accept_multiple_files=True)
 
-# Improved text extraction function with normalization
 def normalize_text(text):
-    # Replace multiple spaces with a single space
-    text = re.sub(r'\s+', ' ', text)
-    # Optional: Additional normalization logic can be added here
-    return text.strip()
+    # Normalize whitespace and strip leading/trailing whitespace
+    return re.sub(r'\s+', ' ', text).strip()
 
+def extract_text_with_ocr(pdf_path):
+    # Convert PDF page to image and use pytesseract to extract text
+    images = pdf2image.convert_from_path(pdf_path)
+    text = " ".join([pytesseract.image_to_string(img) for img in images])
+    return normalize_text(text)
+
+def extract_or_ocr_pdf(pdf_reader):
+    # Attempt to extract text from PDF, use OCR if necessary
+    extracted_text = ""
+    for page in pdf_reader.pages:
+        raw_text = page.extract_text()
+        if raw_text:
+            extracted_text += normalize_text(raw_text) + "\n"
+    return extracted_text.strip() if extracted_text.strip() else extract_text_with_ocr(pdf_reader.stream.name)
 
 if uploaded_files and len(uploaded_files) == 2:
-    file1, file2 = PdfReader(uploaded_files[0]), PdfReader(uploaded_files[1])
-    text1, text2 = "", ""
-    for page in file1.pages:
-        raw_text = page.extract_text()
-        if raw_text:  # Check if text was extracted
-            text1 += normalize_text(raw_text) + "\n"
-
-    for page in file2.pages:
-        raw_text = page.extract_text()
-        if raw_text:  # Check if text was extracted
-            text2 += normalize_text(raw_text) + "\n"
+    text1 = extract_or_ocr_pdf(PdfReader(uploaded_files[0]))
+    text2 = extract_or_ocr_pdf(PdfReader(uploaded_files[1]))
 
     def process_document(user_question, text1, text2):
-        
         template = f"""
         Jij bent een expert boekhouder en bent getraind op het herkennen van bedragen die niet overeenkomen in de rekening courant.
 
@@ -45,19 +49,12 @@ if uploaded_files and len(uploaded_files) == 2:
 
         Nadat je de vraag hebt beantwoord, zorg je dat je het antwoord aanlevert in een format dat duidelijk te lezen is zonder gekke spacing tussen de woorden. Dit dubbelcheck je.
         """
-
         prompt = ChatPromptTemplate.from_template(template)
         llm = ChatOpenAI(api_key=st.secrets["OPENAI_API_KEY"], model="gpt-4-0125-preview", temperature=0, streaming=True)
         chain = prompt | llm | StrOutputParser()
-        
-        responses = chain.stream({
-            "user_question": user_question
-        })
 
-        full_response = ""
-        for response in responses:
-            full_response += response + " "
-        return full_response.strip()
+        responses = chain.stream({"user_question": user_question})
+        return " ".join(responses).strip()
 
     user_question = st.text_input("Stel een vraag over de documenten:")
     

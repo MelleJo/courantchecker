@@ -1,11 +1,4 @@
 streamlit
-openai
-PyPDF2
-langchain_community
-langchain_openai
+pandas
+PyMuPDF
 langchain
-langchain_core
-faiss-cpu
-pytesseract
-Pillow
-pdf2image

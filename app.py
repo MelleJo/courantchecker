@@ -1,65 +1,55 @@
 import streamlit as st
-from PyPDF2 import PdfReader
-from langchain_openai import ChatOpenAI
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.prompts import ChatPromptTemplate
-import re
-import pytesseract
-from PIL import Image
-import pdf2image
+import fitz  # PyMuPDF
+import pandas as pd
+from io import BytesIO
 
-st.header("Rekening Courant Checker")
+def extract_text_from_pdf(file):
+    # Load PDF file from uploaded file
+    with fitz.open(stream=file.read(), filetype="pdf") as doc:
+        text = ""
+        for page in doc:
+            text += page.get_text()
+    return text
 
-uploaded_files = st.file_uploader("Upload PDFs", accept_multiple_files=True)
+def parse_text_to_df(text):
+    # Assuming data follows a specific format with 'Polisnummer', 'Debet', and 'Credit'
+    lines = text.split('\n')
+    data = []
+    for line in lines:
+        parts = line.split()
+        if len(parts) >= 3 and parts[0].isdigit():  # Simple validation assuming 'Polisnummer' is numeric
+            try:
+                polisnummer = parts[0]
+                debet = float(parts[1].replace('.', '').replace(',', '.').replace('€', ''))
+                credit = float(parts[2].replace('.', '').replace(',', '.').replace('€', ''))
+                data.append([polisnummer, debet, credit])
+            except ValueError:
+                continue  # Skip lines that do not conform to expected format
+    return pd.DataFrame(data, columns=['Polisnummer', 'Debet', 'Credit'])
 
-def normalize_text(text):
-    # Normalize whitespace and strip leading/trailing whitespace
-    return re.sub(r'\s+', ' ', text).strip()
+def find_discrepancies(df1, df2):
+    # Merge dataframes on 'Polisnummer' and calculate differences
+    merged = pd.merge(df1, df2, on='Polisnummer', suffixes=('_1', '_2'))
+    merged['Debet_diff'] = merged['Debet_1'] - merged['Debet_2']
+    merged['Credit_diff'] = merged['Credit_1'] - merged['Credit_2']
+    return merged[(merged['Debet_diff'] != 0) | (merged['Credit_diff'] != 0)]
 
-def extract_text_with_ocr(pdf_path):
-    # Convert PDF page to image and use pytesseract to extract text
-    images = pdf2image.convert_from_path(pdf_path)
-    text = " ".join([pytesseract.image_to_string(img) for img in images])
-    return normalize_text(text)
+# Streamlit UI setup
+st.title('Discrepancy Checker for Rekening Couranten')
+uploaded_file1 = st.file_uploader("Upload your company's file", type=['pdf'], key='file1')
+uploaded_file2 = st.file_uploader("Upload Felison's file", type=['pdf'], key='file2')
 
-def extract_or_ocr_pdf(pdf_reader):
-    # Attempt to extract text from PDF, use OCR if necessary
-    extracted_text = ""
-    for page in pdf_reader.pages:
-        raw_text = page.extract_text()
-        if raw_text:
-            extracted_text += normalize_text(raw_text) + "\n"
-    return extracted_text.strip() if extracted_text.strip() else extract_text_with_ocr(pdf_reader.stream.name)
-
-if uploaded_files and len(uploaded_files) == 2:
-    text1 = extract_or_ocr_pdf(PdfReader(uploaded_files[0]))
-    text2 = extract_or_ocr_pdf(PdfReader(uploaded_files[1]))
-
-    def process_document(user_question, text1, text2):
-        template = f"""
-        Jij bent een expert boekhouder en bent getraind op het herkennen van bedragen die niet overeenkomen in de rekening courant.
-
-        De gebruiker stelt een vraag die je beantwoord: "{user_question}"
-
-        Document 1:
-        {text1}
-
-        Document 2:
-        {text2}
-
-        Nadat je de vraag hebt beantwoord, zorg je dat je het antwoord aanlevert in een format dat duidelijk te lezen is zonder gekke spacing tussen de woorden. Dit dubbelcheck je.
-        """
-        prompt = ChatPromptTemplate.from_template(template)
-        llm = ChatOpenAI(api_key=st.secrets["OPENAI_API_KEY"], model="gpt-4-0125-preview", temperature=0, streaming=True)
-        chain = prompt | llm | StrOutputParser()
-
-        responses = chain.stream({"user_question": user_question})
-        return " ".join(responses).strip()
-
-    user_question = st.text_input("Stel een vraag over de documenten:")
-    
-    if user_question:
-        response = process_document(user_question, text1, text2)
-        st.write(response)
-else:
-    st.error("Please upload exactly two PDF files.")
+if st.button('Analyze Discrepancies'):
+    if uploaded_file1 is not None and uploaded_file2 is not None:
+        text1 = extract_text_from_pdf(uploaded_file1)
+        text2 = extract_text_from_pdf(uploaded_file2)
+        df1 = parse_text_to_df(text1)
+        df2 = parse_text_to_df(text2)
+        discrepancies = find_discrepancies(df1, df2)
+        if not discrepancies.empty:
+            st.write('Discrepancies found:')
+            st.dataframe(discrepancies)
+        else:
+            st.success('No discrepancies found!')
+    else:
+        st.error("Please upload both files to proceed.")

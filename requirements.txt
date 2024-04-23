@@ -1,5 +1,9 @@
 streamlit
-pandas
-PyMuPDF
+openai
+PyPDF2
+langchain_community
+langchain_openai
 langchain
-langchain-core
+langchain_core
+langchain-pinecone
+faiss-cpu

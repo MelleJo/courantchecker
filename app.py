@@ -47,7 +47,8 @@ def process_document(file1, file2, user_question):
         template = """
         Je bent een expert boekhouder. Je controleert de rekening couranten op discrepensies, je controleert daarbij de credit en debet van document1 = {document_text_doc1} en document2 = {document_text_doc2}. Deze vergelijk je met elkaar en je komt met een lijst van de exacte verschillen.
         Dit geef je zo duidelijk mogelijk weer per polisnummer. Als je bepaalde matches al op slimme wijze kunt maken stel je deze voor.
-        Prioriteit nummer één is de nauwkeurigheid en volleheid.
+        Prioriteit nummer één is de nauwkeurigheid en volledigheid. 
+        Je antwoord bestaat uit een lijst van alle discrepensies.
         """
         
         prompt = ChatPromptTemplate.from_template(template)

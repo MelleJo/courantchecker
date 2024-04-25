@@ -53,6 +53,7 @@ def process_document(file1, file2, user_question):
         Je hoeft geen uitleg te geven. Alleen de lijst. Je geeft alleen maar de polisnummers waarbij een discrepensie is en de beschrijving van de discrepensie. 
         Absoluut geen tekst om de lijst heen. Enkel de lijst, en dan per discrepensie wel kijken of je een mogelijke uitleg kunt vinden. 
         De bedragen 1,05 en 2,10 mag je negeren, deze hebben een reden (assurantiebelasting).
+        Gebruik wel een duidelijke weergave van de verschillen, dus bijvoorbeeld als een tabel.
         """
         
         prompt = ChatPromptTemplate.from_template(template)

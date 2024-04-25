@@ -23,7 +23,7 @@ def extract_text_from_pdf_by_page(file):
             pages_text.append(text)
     return pages_text
 
-def process_document(file1, file2, user_question):
+def process_document(file1, file2):
     with st.spinner('Denken...'):
         # Check if files are uploaded
         if not file1 or not file2:
@@ -68,12 +68,11 @@ def process_document(file1, file2, user_question):
 
 def main():
     st.title("Courantchecker - testversie 0.0.1")
-    
-    user_question = st.text_input("Wat wil je graag weten?")
-    
-    if user_question:
-        answer = process_document(upload_doc1, upload_doc2, user_question)
+
+    if st.button('Start vergelijken'):
+        answer = process_document(upload_doc1, upload_doc2)
         st.write(answer)
+
 
 if __name__ == "__main__":
     main()

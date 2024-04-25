@@ -50,6 +50,7 @@ def process_document(file1, file2, user_question):
         Prioriteit nummer één is de nauwkeurigheid en volledigheid. 
         Je antwoord bestaat uit een lijst van alle discrepensies.
         Je geeft geen stappenlijst of iets dergelijks, je produceert gewoon direct een lijst met alle polisnummers en de discrepensies. 
+        Je hoeft geen uitleg te geven. Alleen de lijst. Je geeft alleen maar de polisnummers waarbij een discrepensie is en de beschrijving van de discrepensie. 
         """
         
         prompt = ChatPromptTemplate.from_template(template)

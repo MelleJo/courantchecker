@@ -62,8 +62,7 @@ def process_document(file1, file2):
         chain = prompt | llm | StrOutputParser()
         return chain.stream({
             "document_text_doc1": document_text_doc1,
-            "document_text_doc2": document_text_doc2,
-            "user_question": user_question,
+            "document_text_doc2": document_text_doc2
         })
 
 def main():

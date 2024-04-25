@@ -49,11 +49,11 @@ def process_document(file1, file2, user_question):
         Dit geef je zo duidelijk mogelijk weer per polisnummer. Als je bepaalde matches al op slimme wijze kunt maken stel je deze voor.
         Prioriteit nummer één is de nauwkeurigheid en volledigheid. 
         Je antwoord bestaat uit een lijst van alle discrepensies.
+        Je geeft geen stappenlijst of iets dergelijks, je produceert gewoon direct een lijst met alle polisnummers en de discrepensies. 
         """
         
         prompt = ChatPromptTemplate.from_template(template)
 
-        # Perform similarity search
         llm = ChatOpenAI(api_key=st.secrets["OPENAI_API_KEY"], model="gpt-4-turbo-2024-04-09", temperature=0, streaming=True)
         chain = prompt | llm | StrOutputParser()
         return chain.stream({

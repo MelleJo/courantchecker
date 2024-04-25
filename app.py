@@ -51,6 +51,8 @@ def process_document(file1, file2, user_question):
         Je antwoord bestaat uit een lijst van alle discrepensies.
         Je geeft geen stappenlijst of iets dergelijks, je produceert gewoon direct een lijst met alle polisnummers en de discrepensies. 
         Je hoeft geen uitleg te geven. Alleen de lijst. Je geeft alleen maar de polisnummers waarbij een discrepensie is en de beschrijving van de discrepensie. 
+        Absoluut geen tekst om de lijst heen. Enkel de lijst, en dan per discrepensie wel kijken of je een mogelijke uitleg kunt vinden. 
+        De bedragen 1,05 en 2,10 mag je negeren, deze hebben een reden (assurantiebelasting).
         """
         
         prompt = ChatPromptTemplate.from_template(template)

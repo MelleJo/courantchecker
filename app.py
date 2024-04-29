@@ -1,77 +1,74 @@
-import streamlit as st
-import os
-from PyPDF2 import PdfReader
-from langchain.text_splitter import CharacterTextSplitter
-from langchain_community.vectorstores import FAISS
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-from langchain.chains import AnalyzeDocumentChain
-from langchain_community.callbacks import get_openai_callback
-from langchain.chains.question_answering import load_qa_chain
-from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.prompts import ChatPromptTemplate
+=import streamlit as st
+import fitz  # PyMuPDF voor het lezen van PDF's
+import pandas as pd
+from langchain.langgraph import LangGraph, Node
+from langchain.llms import GroqLLM  # Voor het gebruik van Groq LLM
 
-upload_doc1 = st.file_uploader("Upload document 1", type="pdf")
-upload_doc2 = st.file_uploader("Upload document 2", type="pdf")
+# Configuratie van API sleutels
+API_KEY = st.secrets["GROQ_API_KEY"]
 
-def extract_text_from_pdf_by_page(file):
-    pages_text = []
-    reader = PdfReader(file)
-    for page in reader.pages:
-        text = page.extract_text()
-        if text:
-            pages_text.append(text)
-    return pages_text
+# Initialisatie van Groq LLM
+groq_llm = GroqLLM(api_key=API_KEY)
 
-def process_document(file1, file2):
-    with st.spinner('Denken...'):
-        # Check if files are uploaded
-        if not file1 or not file2:
-            st.error("Please upload both documents.")
-            return
+# Node functies
+def extract_text_from_pdf(state):
+    file_path = state["file_path"]
+    doc = fitz.open(file_path)
+    text = ""
+    for page in doc:
+        text += page.get_text("text")
+    state["extracted_text"] = text
+    return state
 
-        # Extract text from the documents
-        document_pages_doc1 = extract_text_from_pdf_by_page(file1)
-        document_pages_doc2 = extract_text_from_pdf_by_page(file2)
+def extract_data(state):
+    text = state["extracted_text"]
+    lines = text.split('\n')
+    data = []
+    for line in lines:
+        parts = line.strip().split()
+        if len(parts) > 2:  # Pas aan op basis van je PDF structuur
+            data.append(parts)
+    df = pd.DataFrame(data, columns=['Datum', 'Debet', 'Credit'])  # Pas kolomnamen aan
+    state["dataframe"] = df
+    return state
 
-        if not document_pages_doc1 or all(page.strip() == "" for page in document_pages_doc1):
-            st.error("No valid text extracted from document 1. Please check the document format or content.")
-            return
-        if not document_pages_doc2 or all(page.strip() == "" for page in document_pages_doc2):
-            st.error("No valid text extracted from document 2. Please check the document format or content.")
-            return
+def compare_data(state):
+    df1 = state["dataframe1"]
+    df2 = state["dataframe2"]
+    comparison = df1.compare(df2)
+    state["comparison"] = comparison
+    return state
 
-        document_text_doc1 = " ".join(document_pages_doc1)
-        document_text_doc2 = " ".join(document_pages_doc2)
+def save_results(state):
+    comparison = state["comparison"]
+    comparison.to_excel("output_differences.xlsx")
+    state["output_file"] = "output_differences.xlsx"
+    return state
 
-        template = """
-        Je bent een expert boekhouder. Je controleert de rekening couranten op discrepensies, je controleert daarbij de credit en debet van document1 = {document_text_doc1} en document2 = {document_text_doc2}. Deze vergelijk je met elkaar en je komt met een lijst van de exacte verschillen.
-        Dit geef je zo duidelijk mogelijk weer per polisnummer. Als je bepaalde matches al op slimme wijze kunt maken stel je deze voor.
-        Prioriteit nummer één is de nauwkeurigheid en volledigheid. 
-        Je antwoord bestaat uit een lijst van alle discrepensies.
-        Je geeft geen stappenlijst of iets dergelijks, je produceert gewoon direct een lijst met alle polisnummers en de discrepensies. 
-        Je hoeft geen uitleg te geven. Alleen de lijst. Je geeft alleen maar de polisnummers waarbij een discrepensie is en de beschrijving van de discrepensie. 
-        Absoluut geen tekst om de lijst heen. Enkel de lijst, en dan per discrepensie wel kijken of je een mogelijke uitleg kunt vinden. 
-        De bedragen 1,05 en 2,10 mag je negeren, deze hebben een reden (assurantiebelasting).
-        Gebruik wel een duidelijke weergave van de verschillen, dus bijvoorbeeld als een tabel.
-        """
-        
-        prompt = ChatPromptTemplate.from_template(template)
+# LangGraph opzet
+graph = LangGraph()
+graph.add_node("extract_pdf1", Node(function=extract_text_from_pdf))
+graph.add_node("extract_data1", Node(function=extract_data))
+graph.add_node("extract_pdf2", Node(function=extract_text_from_pdf))
+graph.add_node("extract_data2", Node(function=extract_data))
+graph.add_node("compare", Node(function=compare_data))
+graph.add_node("save", Node(function=save_results))
 
-        llm = ChatOpenAI(api_key=st.secrets["OPENAI_API_KEY"], model="gpt-4-turbo-2024-04-09", temperature=0, streaming=True)
-        chain = prompt | llm | StrOutputParser()
-        return chain.stream({
-            "document_text_doc1": document_text_doc1,
-            "document_text_doc2": document_text_doc2
-        })
+# Edges configureren
+graph.add_edge("extract_pdf1", "extract_data1")
+graph.add_edge("extract_data1", "extract_pdf2")
+graph.add_edge("extract_pdf2", "extract_data2")
+graph.add_edge("extract_data2", "compare")
+graph.add_edge("compare", "save")
 
-def main():
-    st.title("Courantchecker - testversie 0.0.1")
-
-    if st.button('Start vergelijken'):
-        answer = process_document(upload_doc1, upload_doc2)
-        st.write(answer)
-
-
-if __name__ == "__main__":
-    main()
+# Streamlit UI
+st.title('Rekening Courant Document Vergelijker')
+uploaded_files = st.file_uploader("Upload twee PDF-documenten", accept_multiple_files=True, type=["pdf"])
+if uploaded_files and len(uploaded_files) == 2:
+    state = {
+        "file_path": uploaded_files[0],
+        "file_path2": uploaded_files[1]
+    }
+    result = graph.run(state)  # Graph uitvoeren
+    st.success('De verschillen zijn geanalyseerd en opgeslagen.')
+    st.download_button('Download Resultaten', result["output_file"])

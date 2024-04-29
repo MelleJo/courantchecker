@@ -1,9 +1,5 @@
 streamlit
-openai
-PyPDF2
-langchain_community
-langchain_openai
+PyMuPDF==1.18.19
+pandas
+openpyxl
 langchain
-langchain_core
-langchain-pinecone
-faiss-cpu

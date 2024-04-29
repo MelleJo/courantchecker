@@ -7,6 +7,5 @@ langchain_community
 tiktoken
 langchain-openai
 langchainhub
-langchain
-langgraph
+langchain-langgraph
 tavily-python

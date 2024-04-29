@@ -1,7 +1,9 @@
 import streamlit as st
 import fitz  # PyMuPDF voor het lezen van PDF's
 import pandas as pd
-from langchain.langgraph import LangGraph, Node
+from langchain.schema import Document
+from langgraph.graph import END, StateGraph
+from langchain_groq import ChatGroq
 from langchain.llms import GroqLLM  # Voor het gebruik van Groq LLM
 
 # Configuratie van API sleutels

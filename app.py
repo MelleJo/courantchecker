@@ -1,4 +1,4 @@
-=import streamlit as st
+import streamlit as st
 import fitz  # PyMuPDF voor het lezen van PDF's
 import pandas as pd
 from langchain.langgraph import LangGraph, Node

@@ -3,3 +3,10 @@ PyMuPDF==1.18.19
 pandas
 openpyxl
 langchain
+langchain_community
+tiktoken
+langchain-openai
+langchainhub
+langchain
+langgraph
+tavily-python

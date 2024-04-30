@@ -1,22 +1,3 @@
-import venv
-import os
-
-# Create a virtual environment
-env_dir = os.path.join(os.getcwd(), "env")
-venv.create(env_dir, with_pip=True)
-
-# Activate the virtual environment
-activate_this = os.path.join(env_dir, "bin", "activate_this.py")
-exec(open(activate_this).read(), {'__file__': activate_this})
-
-import subprocess
-
-# Install required packages
-packages = ["langchain", "langgraph", "pandas", "pymupdf", "streamlit"]
-for package in packages:
-    subprocess.check_call([os.path.join(env_dir, "bin", "pip"), "install", package])
-
-
 import getpass
 import os
 import pandas as pd
@@ -25,7 +6,7 @@ from langchain.agents import create_openai_functions_agent
 from langchain.tools.render import format_tool_to_openai_function
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_openai import ChatOpenAI
-from langgraph import StateGraph
+from langgraph import StateGraph, tool, repl, AgentExecutor, AgentState, Agent, AgentAction
 from langgraph.prebuilt.tool_executor import ToolExecutor, ToolInvocation
 from langchain_core.messages import (
     AIMessage,

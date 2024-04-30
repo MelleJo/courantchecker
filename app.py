@@ -1,3 +1,22 @@
+import venv
+import os
+
+# Create a virtual environment
+env_dir = os.path.join(os.getcwd(), "env")
+venv.create(env_dir, with_pip=True)
+
+# Activate the virtual environment
+activate_this = os.path.join(env_dir, "bin", "activate_this.py")
+exec(open(activate_this).read(), {'__file__': activate_this})
+
+import subprocess
+
+# Install required packages
+packages = ["langchain", "langgraph", "pandas", "pymupdf", "streamlit"]
+for package in packages:
+    subprocess.check_call([os.path.join(env_dir, "bin", "pip"), "install", package])
+
+
 import getpass
 import os
 import pandas as pd

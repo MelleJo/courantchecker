@@ -26,12 +26,13 @@ import streamlit as st
 import fitz  # PyMuPDF library
 
 # Set API keys from Streamlit secrets
-OPENAI_API_KEY = st.secrets["openai_api_key"]
-LANGCHAIN_API_KEY = st.secrets["langchain_api_key"]
+OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
+
+#LANGCHAIN_API_KEY = st.secrets["langchain_api_key"]
 
 # Enable tracing
-os.environ["LANGCHAIN_TRACING_V2"] = "true"
-os.environ["LANGCHAIN_PROJECT"] = "Multi-agent Collaboration"
+#os.environ["LANGCHAIN_TRACING_V2"] = "true"
+#os.environ["LANGCHAIN_PROJECT"] = "Multi-agent Collaboration"
 
 # Define tools
 pdf_reader = PyPDFReader()

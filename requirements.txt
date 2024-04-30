@@ -3,3 +3,6 @@ langgraph
 pandas
 streamlit
 pymupdf
+langchain
+openai
+langchain_openai

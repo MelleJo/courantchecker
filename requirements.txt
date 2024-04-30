@@ -5,5 +5,5 @@ langchain-groq
 langchain_community
 tiktoken
 langchainhub
-langchain
+langchain_core
 PyPDF2

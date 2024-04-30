@@ -29,10 +29,6 @@ import fitz  # PyMuPDF library
 OPENAI_API_KEY = st.secrets["openai_api_key"]
 LANGCHAIN_API_KEY = st.secrets["langchain_api_key"]
 
-# Set environment variables
-os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
-os.environ["LANGCHAIN_API_KEY"] = LANGCHAIN_API_KEY
-
 # Enable tracing
 os.environ["LANGCHAIN_TRACING_V2"] = "true"
 os.environ["LANGCHAIN_PROJECT"] = "Multi-agent Collaboration"

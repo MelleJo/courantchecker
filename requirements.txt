@@ -1,9 +1,9 @@
 streamlit
 langgraph
 langchain_openai
-langchain-groq
+langchain_groq
 langchain_community
 tiktoken
 langchainhub
-langchain
+langchainS
 PyPDF2

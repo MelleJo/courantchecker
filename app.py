@@ -20,6 +20,7 @@ import functools
 from typing_extensions import TypedDict
 import json
 from langchain_community.document_loaders import PyPDFLoader
+from langchain.agents import Tool
 from langchain_experimental.utilities import PythonREPL
 import streamlit as st
 import fitz  # PyMuPDF library

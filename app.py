@@ -1,7 +1,7 @@
 import streamlit as st
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
-from langchain.graph import END, MessageGraph
+from langchain_graph import END, MessageGraph
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from langchain.prompts import PromptTemplate

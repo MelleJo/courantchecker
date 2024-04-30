@@ -1,6 +1,5 @@
 langchain
 langgraph
 pandas
-python-pdfreader
 streamlit
 pymupdf

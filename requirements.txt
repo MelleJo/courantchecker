@@ -6,3 +6,4 @@ pymupdf
 langchain
 openai
 langchain_openai
+langchain_community

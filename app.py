@@ -19,7 +19,7 @@ import operator
 import functools
 from typing_extensions import TypedDict
 import json
-from langchain.tools import PyPDFReader
+from langchain_community.document_loaders import PyPDFLoader
 from langchain_experimental.utilities import PythonREPL
 import streamlit as st
 import fitz  # PyMuPDF library

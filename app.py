@@ -1,54 +1,219 @@
-import streamlit as st
-from langchain_openai import ChatOpenAI
-from langchain_core.messages import HumanMessage
-from langchain.graph import END, MessageGraph
-from langchain_groq import ChatGroq
-from langchain_core.prompts import ChatPromptTemplate
-from langchain.prompts import PromptTemplate
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.output_parsers import JsonOutputParser
+import getpass
+import os
 import pandas as pd
-from PyPDF2 import PdfReader
+from typing import Annotated, List, Sequence, Tuple, TypedDict, Union
+from langchain.agents import create_openai_functions_agent
+from langchain.tools.render import format_tool_to_openai_function
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_openai import ChatOpenAI
+from langgraph import StateGraph
+from langgraph.prebuilt.tool_executor import ToolExecutor, ToolInvocation
+from langchain_core.messages import (
+    AIMessage,
+    BaseMessage,
+    ChatMessage,
+    FunctionMessage,
+    HumanMessage,
+)
+import operator
+import functools
+from typing_extensions import TypedDict
+import json
+from langchain.tools import PyPDFReader
+from langchain_experimental.utilities import PythonREPL
+import streamlit as st
 
+# Set API keys from Streamlit secrets
+OPENAI_API_KEY = st.secrets["openai_api_key"]
+LANGCHAIN_API_KEY = st.secrets["langchain_api_key"]
 
-# API keys
-openai_api_key = st.secrets["OPENAI_API_KEY"]
-groq_api_key = st.secrets["GROQ_API_KEY"]
+# Set environment variables
+os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
+os.environ["LANGCHAIN_API_KEY"] = LANGCHAIN_API_KEY
 
-GROQ_LLM = ChatGroq(
-    model="llama3-70b-8192", api_key=groq_api_key, temperature=0
+# Enable tracing
+os.environ["LANGCHAIN_TRACING_V2"] = "true"
+os.environ["LANGCHAIN_PROJECT"] = "Multi-agent Collaboration"
+
+# Define tools
+pdf_reader = PyPDFReader()
+
+@tool
+def read_pdf(pdf_file: Annotated[str, "The PDF file to extract text from"]):
+    """Use this to read text from a PDF file."""
+    try:
+        text = pdf_reader.read(pdf_file)
+        return text
+    except Exception as e:
+        return f"Failed to read PDF. Error: {repr(e)}"
+
+repl = PythonREPL()
+
+@tool
+def python_repl(
+    code: Annotated[str, "The python code to execute to generate your chart."]
+):
+    """Use this to execute python code. If you want to see the output of a value,
+    you should print it out with `print(...)`. This is visible to the user."""
+    try:
+        result = repl.run(code)
+    except BaseException as e:
+        return f"Failed to execute. Error: {repr(e)}"
+    return f"Succesfully executed:\n```python\n{code}\n```\nStdout: {result}"
+
+# Define state
+class AgentState(TypedDict):
+    messages: Annotated[Sequence[BaseMessage], operator.add]
+    sender: str
+    pdf_1_data: pd.DataFrame
+    pdf_2_data: pd.DataFrame
+
+# Create agents
+llm = ChatOpenAI(model="gpt-4-1106-preview")
+
+def create_agent(llm, tools, system_message: str):
+    """Create an agent."""
+    functions = [format_tool_to_openai_function(t) for t in tools]
+
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            (
+                "system",
+                "You are a helpful AI assistant, collaborating with other assistants."
+                " Use the provided tools to progress towards answering the question."
+                " If you are unable to fully answer, that's OK, another assistant with different tools "
+                " will help where you left off. Execute what you can to make progress."
+                " If you or any of the other assistants have the final answer or deliverable,"
+                " prefix your response with FINAL ANSWER so the team knows to stop."
+                " You have access to the following tools: {tool_names}.\n{system_message}",
+            ),
+            MessagesPlaceholder(variable_name="messages"),
+        ]
+    )
+    prompt = prompt.partial(system_message=system_message)
+    prompt = prompt.partial(tool_names=", ".join([tool.name for tool in tools]))
+    return prompt | llm.bind_functions(functions)
+
+# Text Extraction Agent
+text_extraction_agent = create_agent(
+    llm,
+    [read_pdf],
+    system_message="You should extract text data from PDF documents and categorize it into pandas DataFrames.",
 )
 
-st.title("COURANT CHECKER")
-doc_1 = st.file_uploader("Upload Document 1", type="pdf")
-doc_2 = st.file_uploader("Upload Document 2", type="pdf")
+def text_extraction_node(state):
+    result = text_extraction_agent.invoke(state)
+    if isinstance(result, FunctionMessage):
+        pass
+    else:
+        result = HumanMessage(**result.dict(exclude={"type", "name"}), name="Text Extractor")
+    return {
+        "messages": [result],
+        "sender": "Text Extractor",
+        "pdf_1_data": state.get("pdf_1_data", pd.DataFrame()),
+        "pdf_2_data": state.get("pdf_2_data", pd.DataFrame()),
+    }
 
-
-def extract_pdf_text(pdf_file1, pdf_file2):
-    reader1 = PdfReader(pdf_file1)
-    reader2 = PdfReader(pdf_file2)
-    text_doc1 = ""
-    text_doc2 = ""
-    for page in reader1.pages:
-        text_doc1 += page.extractText()
-    for page in reader2.pages:
-        text_doc2 += page.extractText()
-    return text_doc1, text_doc2
-
-
-# text -> tabel
-prompt = PromptTemplate(
-    template="""
-    Jij bent een expert in het omzetten van de tekst van het pdf bestand in een net Pandas dataframe, je zorgt ervoor dat het netjes per polisnummer is gesorteerd en dat alle transacties worden opgenomen in de tabel.
-    Je gebruikt daarvoor {text_doc1} en {text_doc2}, je geeft duidelijk aan bij elke transactie van welk document het afkomstig is. 
-
-    """,
+# Document Comparison Agent
+comparison_agent = create_agent(
+    llm,
+    [],
+    system_message="You should compare the two pandas DataFrames and find the differences between them.",
 )
 
-extract_structure_agent = prompt | GROQ_LLM | StrOutputParser()
+def comparison_node(state):
+    result = comparison_agent.invoke({"messages": state["messages"], "pdf_1_data": state["pdf_1_data"], "pdf_2_data": state["pdf_2_data"]})
+    result = HumanMessage(**result.dict(exclude={"type", "name"}), name="Comparison Agent")
+    return {
+        "messages": [result],
+        "sender": "Comparison Agent",
+        "pdf_1_data": state["pdf_1_data"],
+        "pdf_2_data": state["pdf_2_data"],
+    }
 
-text_doc1, text_doc2 = extract_pdf_text(doc_1, doc_2)
+# Excel Export Agent
+excel_agent = create_agent(
+    llm,
+    [python_repl],
+    system_message="You should export the differences between the two documents to an Excel file for the user.",
+)
 
-result = extract_structure_agent.invoke({"text_doc1": text_doc1, "text_doc2": text_doc2})
+def excel_node(state):
+    result = excel_agent.invoke(state)
+    if isinstance(result, FunctionMessage):
+        pass
+    else:
+        result = HumanMessage(**result.dict(exclude={"type", "name"}), name="Excel Agent")
+    return {
+        "messages": [result],
+        "sender": "Excel Agent",
+        "pdf_1_data": state["pdf_1_data"],
+        "pdf_2_data": state["pdf_2_data"],
+    }
 
-st.write(result)
+# Tool Executor
+tools = [read_pdf, python_repl]
+tool_executor = ToolExecutor(tools)
+
+def tool_node(state):
+    """This runs tools in the graph
+
+    It takes in an agent action and calls that tool and returns the result."""
+    messages = state["messages"]
+    last_message = messages[-1]
+    tool_input = json.loads(
+        last_message.additional_kwargs["function_call"]["arguments"]
+    )
+    if len(tool_input) == 1 and "__arg1" in tool_input:
+        tool_input = next(iter(tool_input.values()))
+    tool_name = last_message.additional_kwargs["function_call"]["name"]
+    action = ToolInvocation(
+        tool=tool_name,
+        tool_input=tool_input,
+    )
+    response = tool_executor.invoke(action)
+    function_message = FunctionMessage(
+        content=f"{tool_name} response: {str(response)}", name=action.tool
+    )
+    return {"messages": [function_message]}
+
+# Edge logic
+def router(state):
+    messages = state["messages"]
+    last_message = messages[-1]
+    if "function_call" in last_message.additional_kwargs:
+        return "call_tool"
+    if "FINAL ANSWER" in last_message.content:
+        return "end"
+    return "continue"
+
+# Define the graph
+workflow = StateGraph(AgentState)
+
+workflow.add_node("Text Extractor", text_extraction_node)
+workflow.add_node("Comparison Agent", comparison_node)
+workflow.add_node("Excel Agent", excel_node)
+workflow.add_node("call_tool", tool_node)
+
+workflow.add_conditional_edges(
+    "Text Extractor",
+    router,
+   {"continue": "Excel Agent", "call_tool": "call_tool", "end": END},
+)
+workflow.add_conditional_edges(
+   "Excel Agent",
+   router,
+   {"continue": "Text Extractor", "call_tool": "call_tool", "end": END},
+)
+
+workflow.add_conditional_edges(
+   "call_tool",
+   lambda x: x["sender"],
+   {
+       "Text Extractor": "Text Extractor",
+       "Comparison Agent": "Comparison Agent",
+       "Excel Agent": "Excel Agent",
+   },
+)
+workflow.set_entry_point("Text Extractor")
+graph = workflow.compile()

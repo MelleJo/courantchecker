@@ -1,9 +1,5 @@
-streamlit
+langchain
 langgraph
-langchain_openai
-langchain-groq
-langchain_community
-tiktoken
-langchainhub
-langchain_core
-PyPDF2
+pandas
+python-pdfreader
+streamlit

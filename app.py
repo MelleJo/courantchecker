@@ -22,6 +22,7 @@ import json
 from langchain.tools import PyPDFReader
 from langchain_experimental.utilities import PythonREPL
 import streamlit as st
+import fitz  # PyMuPDF library
 
 # Set API keys from Streamlit secrets
 OPENAI_API_KEY = st.secrets["openai_api_key"]
@@ -39,16 +40,16 @@ os.environ["LANGCHAIN_PROJECT"] = "Multi-agent Collaboration"
 pdf_reader = PyPDFReader()
 
 @tool
-def read_pdf(pdf_file: Annotated[str, "The PDF file to extract text from"]):
+def read_pdf(pdf_file: Annotated[bytes, "The PDF file to extract text from"]):
     """Use this to read text from a PDF file."""
     try:
-        text = pdf_reader.read(pdf_file)
+        with fitz.open(stream=pdf_file, filetype="pdf") as pdf:
+            text = ""
+            for page in pdf:
+                text += page.get_text()
         return text
     except Exception as e:
         return f"Failed to read PDF. Error: {repr(e)}"
-
-repl = PythonREPL()
-
 @tool
 def python_repl(
     code: Annotated[str, "The python code to execute to generate your chart."]

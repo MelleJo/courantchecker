@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import fitz  # PyMuPDF library
-from langchain import StateGraph, Tool, tool
+from langgraph import StateGraph, Tool, tool
 from langchain.agents import OpenAIChatAgent
 from langchain.tools.render import format_tool_to_openai_function
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder

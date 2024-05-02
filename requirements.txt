@@ -1,13 +1,3 @@
-langchain
 langgraph
-pandas
+langchain-openai
 streamlit
-pymupdf
-langchain
-openai
-langchain_openai
-langchain_community
-langchain_core
-langchain_experimental
-openpyxl
-

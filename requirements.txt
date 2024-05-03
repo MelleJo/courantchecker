@@ -3,4 +3,4 @@ pandas
 pdfplumber
 openpyxl
 crewai
-pysqlite3
+pysqlite3 == 3.35

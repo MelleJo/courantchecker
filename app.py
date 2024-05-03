@@ -156,7 +156,7 @@ excel_bookkeeper = Agent(
 extract_transactions_task = Task(
   description="Extract transactions from the uploaded PDF files",
   expected_output="A pandas dataframe containing all the transactions",
-  tools=[pdf_to_dataframe_tool],
+  tools=[panda_dataframe_tool],
   agent=transaction_organiser,
 )
 
@@ -182,7 +182,7 @@ st.title("Courantchecker")
 
 # Forming the tech-focused crew with some enhanced configurations
 crew = Crew(
-  agents=[pdf_organiser, pdf_to_dataframe_tool, compare_dataframe_tool, excel_bookkeeper],
+  agents=[dataframe_comparer, transaction_organiser, pdf_reader, excel_bookkeeper],
   tasks=[extract_transactions_task, compare_transactions_task, bookkeep_transactions_task],
   process=Process.sequential,  # Optional: Sequential task execution is default
   memory=True,

@@ -1,6 +1,5 @@
 streamlit
 pandas
-pdfplumber
 openpyxl
 crewai
-pysqlite3 == 3.35
+crewai[tools]

@@ -6,6 +6,8 @@ from crewai import Task
 from crewai import Crew, Process
 from crewai_tools import tool
 import pandas as pd
+import chromadb
+
 
 
 #os.environ["SERPER_API_KEY"] = "Your Key"  # serper.dev API key

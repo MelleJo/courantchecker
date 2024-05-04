@@ -117,7 +117,7 @@ pdf_reader = Agent(
   backstory=(
     "Driven by accuracy and servitude, you extract all the transactions in full detail and without missing anything."
   ),
-  tools=[PDFSearchTool],
+  tools=[pdf_search_tool],
   allow_delegation=False
 )
 

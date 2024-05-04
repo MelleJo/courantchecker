@@ -8,10 +8,7 @@ from crewai_tools import tool
 import pandas as pd
 import chromadb
 
-
-
-#os.environ["SERPER_API_KEY"] = "Your Key"  # serper.dev API key
-api_key = st.secrets["OPENAI_API_KEY"] = "Your Key"
+api_key = st.secrets["OPENAI_API_KEY"]
 
 
 @tool("panda_dataframe_tool")
@@ -89,11 +86,6 @@ def compare_dataframe_tool(question: str, reference_df: pd.DataFrame) -> list:
     # Return a list of differences between the dataframes
     return list(reference_df.compare(df).dropna())
 
-
-
-
-#search_tool = SerperDevTool()
-
 doc_1 = st.file_uploader("Dco1", type="pdf")
 doc_2 = st.file_uploader("Doc2", type="pdf")
 
@@ -150,10 +142,6 @@ excel_bookkeeper = Agent(
   allow_delegation=False
 )
 
-
-# Interface for uploading PDF files
-# (skipping this step as the upload is already done in the previous task)
-
 # Task 2: Extract transactions from PDF files
 extract_transactions_task = Task(
   description="Extract transactions from the uploaded PDF files",
@@ -177,7 +165,6 @@ bookkeep_transactions_task = Task(
   tools=[pandas_to_excel_tool],
   agent=excel_bookkeeper,
 )
-
 
 # Interface for Streamlit
 st.title("Courantchecker")

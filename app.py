@@ -14,8 +14,6 @@ import xlsxwriter
 import base64
 from typing import Any
 
-
-
 api_key = st.secrets["OPENAI_API_KEY"]
 
 
@@ -200,7 +198,7 @@ crew = Crew(
 )
 
 # Starting the task execution process with enhanced feedback
-result = crew.kickoff(inputs={'doc1': doc_1, 'doc2': doc_2}, meta={})
+result = crew.kickoff(inputs={'doc1': doc_1, 'doc2': doc_2})
 
 # Displaying the result in the Streamlit interface
 if isinstance(result, str):

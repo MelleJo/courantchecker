@@ -1,6 +1,6 @@
 import streamlit as st
 from crewai import Agent
-from crewai_tools import PDFSearchTool
+# from crewai_tools import PDFSearchTool
 import os
 from crewai import Task
 from crewai import Crew, Process
@@ -13,6 +13,7 @@ import shutil
 import xlsxwriter
 import base64
 from typing import Any
+from PyPDF2 import PDFReader
 
 
 # API Key
@@ -20,11 +21,24 @@ api_key = st.secrets["OPENAI_API_KEY"]
 
 st.title("Courantchecker")
 
-doc_1 = st.file_uploader("Dco1", type="pdf")
+doc_1 = st.file_uploader("Doc1", type="pdf")
 doc_2 = st.file_uploader("Doc2", type="pdf")
 
 if doc_1 and doc_2:
   # Tool Definitions
+  @tool("custom_pdf_reader_tool")
+  def custom_pdf_reader_tool(pdf_file):
+      try:
+          # Read PDF file from the uploaded file
+          reader = PyPDF2.PdfReader(BytesIO(pdf_file.getvalue()))
+          text = []
+          for page in reader.pages:
+              text.append(page.extract_text())
+          return "\n".join(text)
+      except Exception as e:
+          return f"Failed to process PDF: {str(e)}"
+      
+
   @tool("panda_dataframe_tool")
   def panda_dataframe_tool(question: str) -> pd.DataFrame:
       """Tool that takes a block of text and returns a structured pandas dataframe"""
@@ -63,11 +77,7 @@ if doc_1 and doc_2:
       return list(reference_df.compare(df).dropna())
 
   # PDF Tool Initialization
-  try:
-      pdf_search_tool = PDFSearchTool()
-  except Exception as e:
-      st.error("Failed to initialize PDF processing tool. Please check system configuration.")
-      st.stop()
+  
 
   # Streamlit File Uploaders
 
@@ -81,7 +91,7 @@ if doc_1 and doc_2:
       backstory=(
           "Driven by accuracy and servitude, you extract all the transactions in full detail and without missing anything."
       ),
-      tools=[pdf_search_tool],
+      tools=[custom_pdf_reader_tool],
       allow_delegation=False
   )
 

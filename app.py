@@ -7,6 +7,12 @@ from crewai import Crew, Process
 from crewai_tools import tool
 import pandas as pd
 import chromadb
+from pydantic import BaseModel
+import tempfile
+import shutil
+import xlsxwriter
+import base64
+
 
 api_key = st.secrets["OPENAI_API_KEY"]
 
@@ -33,12 +39,10 @@ def panda_dataframe_tool(question: str) -> pd.DataFrame:
 
 
 @tool("pandas_to_excel_tool")
-def pandas_to_excel_tool(question: str, df: pd.DataFrame) -> str:
-    """Tool that takes a block of text and a pandas dataframe and returns a link to the excel file"""
-    import tempfile
-    import shutil
-    import xlsxwriter
-    import base64
+def pandas_to_excel_tool(question: str, df: Any) -> str:
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError("df must be a pandas DataFrame")
+    
 
     # Create a temporary file
     tmp_file = tempfile.NamedTemporaryFile()
@@ -66,10 +70,11 @@ def pandas_to_excel_tool(question: str, df: pd.DataFrame) -> str:
     return url
 
 @tool("compare_dataframe_tool")
-def compare_dataframe_tool(question: str, reference_df: pd.DataFrame) -> list:
-    """Tool that takes a block of text and a reference dataframe and returns a list of differences"""
-    # Remove any whitespace
+def compare_dataframe_tool(question: str, reference_df: Any) -> list:
+    if not isinstance(reference_df, pd.DataFrame):
+        raise TypeError("reference_df must be a pandas DataFrame")
     text = " ".join(question.split())
+
 
     # Split the text into rows based on newlines
     rows = text.split("\n")

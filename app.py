@@ -13,7 +13,9 @@ import shutil
 import xlsxwriter
 import base64
 from typing import Any
-from PyPDF2 import PDFReader
+import PyPDF2
+from io import BytesIO
+
 
 
 # API Key

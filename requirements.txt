@@ -6,3 +6,4 @@ crewai[tools]
 pysqlite3-binary
 chromadb
 langchain
+xlsxwriter

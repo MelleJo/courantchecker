@@ -42,9 +42,16 @@ def panda_dataframe_tool(question: str) -> pd.DataFrame:
 
 @tool("pandas_to_excel_tool")
 def pandas_to_excel_tool(question: str, df: Any) -> str:
+    """
+    Tool that takes a block of text and a pandas DataFrame, then returns a link to the Excel file.
+    Parameters:
+        question (str): A text question or description.
+        df (Any): A pandas DataFrame or any type that will be validated inside the function.
+    Returns:
+        str: A link to the downloadable Excel file.
+    """
     if not isinstance(df, pd.DataFrame):
         raise TypeError("df must be a pandas DataFrame")
-    
 
     # Create a temporary file
     tmp_file = tempfile.NamedTemporaryFile()
@@ -70,6 +77,7 @@ def pandas_to_excel_tool(question: str, df: Any) -> str:
     url = f"<a href=\"data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{file_b64}\" download=\"file.xlsx\">Download Excel file</a>"
 
     return url
+
 
 @tool("compare_dataframe_tool")
 def compare_dataframe_tool(question: str, reference_df: Any) -> list:

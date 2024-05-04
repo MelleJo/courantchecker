@@ -200,7 +200,7 @@ crew = Crew(
 )
 
 # Starting the task execution process with enhanced feedback
-result = crew.kickoff(inputs={'topic': 'AI in healthcare'})
+result = crew.kickoff(inputs={'doc1': doc_1, 'doc2': doc_2}, meta={})
 
 # Displaying the result in the Streamlit interface
 if isinstance(result, str):
@@ -211,5 +211,6 @@ elif isinstance(result, bytes):
     st.markdown(href, unsafe_allow_html=True)
 else:
     st.error("Something went wrong")
+
 
 

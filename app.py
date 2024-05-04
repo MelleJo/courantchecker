@@ -183,10 +183,6 @@ bookkeep_transactions_task = Task(
   agent=excel_bookkeeper,
 )
 
-# Interface for Streamlit
-st.title("Courantchecker")
-
-# Forming the tech-focused crew with some enhanced configurations
 crew = Crew(
   agents=[dataframe_comparer, transaction_organiser, pdf_reader, excel_bookkeeper],
   tasks=[extract_transactions_task, compare_transactions_task, bookkeep_transactions_task],
@@ -197,18 +193,22 @@ crew = Crew(
   share_crew=True
 )
 
-# Starting the task execution process with enhanced feedback
-result = crew.kickoff(inputs={'doc1': doc_1, 'doc2': doc_2})
+# Interface for Streamlit
+st.title("Courantchecker")
 
-# Displaying the result in the Streamlit interface
-if isinstance(result, str):
-    st.success(result)
-elif isinstance(result, bytes):
-    st.success("The Excel file is ready to download")
-    href = f"<a href='data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{base64.b64encode(result).decode()}' download='comparison.xlsx'>Download Excel file</a>"
-    st.markdown(href, unsafe_allow_html=True)
-else:
-    st.error("Something went wrong")
 
+if st.button("Start"):
+    st.spinner("processing...")
+    result = crew.kickoff(inputs={'doc1': doc_1, 'doc2': doc_2})
+    
+    # Displaying the result in the Streamlit interface
+    if isinstance(result, str):
+        st.success(result)
+    elif isinstance(result, bytes):
+        st.success("The Excel file is ready to download")
+        href = f"<a href='data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{base64.b64encode(result).decode()}' download='comparison.xlsx'>Download Excel file</a>"
+        st.markdown(href, unsafe_allow_html=True)
+    else:
+        st.error("Something went wrong")
 
 

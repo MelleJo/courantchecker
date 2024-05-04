@@ -68,7 +68,7 @@ pdf_reader = Agent(
     role='PDF Reader',
     goal='Carefully and in full completeness extract all the transactions from the pdf files {doc_1} and {doc_2}. You make sure to clearly define from which document each transaction comes from.',
     verbose=True,
-    memory=True,
+    memory=False,
     backstory=(
         "Driven by accuracy and servitude, you extract all the transactions in full detail and without missing anything."
     ),
@@ -80,7 +80,7 @@ transaction_organiser = Agent(
     role='Transaction Organiser',
     goal='Organise the extracted transactions from {pdf_reader} into a pandas dataframe',
     verbose=True,
-    memory=True,
+    memory=False,
     backstory=(
         "With a flair for data manipulation, you take the transactions from {pdf_reader} and organise them into a dataframe, grouped by polisnummer, showing all transactions as either debit or credit. And most importantly, in which document {doc_1} or {doc_2}. You make sure all transactions are easy to read and understand."
     ),
@@ -92,7 +92,7 @@ dataframe_comparer = Agent(
     role='DataFrame Comparer',
     goal='Compare the dataframes from {transaction_organiser} and highlight any discrepancies between {doc_1} and {doc_2}',
     verbose=True,
-    memory=True,
+    memory=False,
     backstory=(
         "With a keen eye for detail, you compare the dataframes from {transaction_organiser} and highlight any discrepancies between {doc_1} and {doc_2}. You make sure to clearly categorize from which document each transaction comes, and order the discrepancies by polisnummer and define whether it is credit or debit."
     ),
@@ -104,7 +104,7 @@ excel_bookkeeper = Agent(
     role='Excel Bookkeeper',
     goal='Bookkeep the transactions from {dataframe_comparer} and export the comparison list to Excel in a structured and easy to read format',
     verbose=True,
-    memory=True,
+    memory=False,
     backstory=(
         "With a keen eye for detail and a lot of experience as a bookkeeper, you take all the transactions from {dataframe_comparer} and bookkeep them in a structured and easy to read format in an Excel file."
     ),
@@ -121,7 +121,7 @@ crew = Crew(
         Task(description="Export transactions to Excel", expected_output="Excel file", tools=[pandas_to_excel_tool], agent=excel_bookkeeper)
     ],
     process=Process.sequential,
-    memory=True,
+    memory=False,
     cache=True,
     max_rpm=100,
     share_crew=True

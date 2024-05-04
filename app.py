@@ -30,6 +30,15 @@ if doc_1 and doc_2:
   # Tool Definitions
   @tool("custom_pdf_reader_tool")
   def custom_pdf_reader_tool(pdf_file):
+      """
+    Custom tool to extract text from a PDF file uploaded by the user.
+
+    Args:
+    pdf_file (BytesIO): A stream containing the PDF file data.
+
+    Returns:
+    str: Extracted text from all pages of the PDF or an error message if the extraction fails.
+    """
       try:
           # Read PDF file from the uploaded file
           reader = PyPDF2.PdfReader(BytesIO(pdf_file.getvalue()))

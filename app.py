@@ -200,8 +200,6 @@ st.title("Courantchecker")
 if st.button("Start"):
     st.spinner("processing...")
     result = crew.kickoff(inputs={'doc1': doc_1, 'doc2': doc_2})
-    
-    # Displaying the result in the Streamlit interface
     if isinstance(result, str):
         st.success(result)
     elif isinstance(result, bytes):

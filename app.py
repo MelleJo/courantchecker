@@ -81,25 +81,27 @@ def pandas_to_excel_tool(question: str, df: Any) -> str:
 
 @tool("compare_dataframe_tool")
 def compare_dataframe_tool(question: str, reference_df: Any) -> list:
+    """
+    Tool that compares a text-formatted table converted into a DataFrame with a reference DataFrame,
+    and returns a list of differences.
+    Parameters:
+        question (str): Text containing tab-separated values structured as a table.
+        reference_df (Any): A pandas DataFrame or any type that will be validated inside the function
+                            to serve as the baseline for comparison.
+    Returns:
+        list: A list of differences between the provided DataFrame and the reference DataFrame.
+    """
     if not isinstance(reference_df, pd.DataFrame):
         raise TypeError("reference_df must be a pandas DataFrame")
+    
     text = " ".join(question.split())
-
-
-    # Split the text into rows based on newlines
     rows = text.split("\n")
-
-    # Load the data from the text into a dataframe
     df = pd.DataFrame([row.split("\t") for row in rows])
-
-    # Set the index to the first column
     df.set_index(df.columns[0], inplace=True)
-
-    # Drop the first column as it's now the index
     df.drop(df.columns[0], axis=1, inplace=True)
-
-    # Return a list of differences between the dataframes
+    
     return list(reference_df.compare(df).dropna())
+
 
 doc_1 = st.file_uploader("Dco1", type="pdf")
 doc_2 = st.file_uploader("Doc2", type="pdf")

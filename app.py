@@ -57,7 +57,11 @@ def compare_dataframe_tool(question: str, reference_df: Any) -> list:
     return list(reference_df.compare(df).dropna())
 
 # PDF Tool Initialization
-pdf_search_tool = PDFSearchTool()
+try:
+    pdf_search_tool = PDFSearchTool()
+except Exception as e:
+    st.error("Failed to initialize PDF processing tool. Please check system configuration.")
+    st.stop()
 
 # Streamlit File Uploaders
 doc_1 = st.file_uploader("Dco1", type="pdf")

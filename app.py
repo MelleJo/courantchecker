@@ -102,6 +102,8 @@ def compare_dataframe_tool(question: str, reference_df: Any) -> list:
     
     return list(reference_df.compare(df).dropna())
 
+pdf_search_tool = PDFSearchTool()
+
 
 doc_1 = st.file_uploader("Dco1", type="pdf")
 doc_2 = st.file_uploader("Doc2", type="pdf")

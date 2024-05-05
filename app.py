@@ -15,11 +15,12 @@ import base64
 from typing import Any
 import PyPDF2
 from io import BytesIO
+from pydantic import BaseModel, validator
 
 
 
 
-# API Key
+
 api_key = st.secrets["OPENAI_API_KEY"]
 
 st.title("Courantchecker")
@@ -28,20 +29,34 @@ doc_1 = st.file_uploader("Doc1", type="pdf")
 doc_2 = st.file_uploader("Doc2", type="pdf")
 
 if doc_1 and doc_2:
+    class PDFInput(BaseModel):
+        pdf_file: Any
+
+        @validator('pdf_file')
+        def check_file_type(cls, value):
+            if not isinstance(value, BytesIO):
+                raise TypeError("pdf_file must be a BytesIO object")
+            return value
+
+        class Config:
+            arbitrary_types_allowed = True
+
     @tool("custom_pdf_reader_tool")
-    def custom_pdf_reader_tool(pdf_file: BytesIO) -> str:
+    def custom_pdf_reader_tool(input: PDFInput) -> str:
         """
-        Extract text from a PDF file using PyPDF2.
-
+        Custom tool to extract text from a PDF file uploaded by the user.
         Args:
-            pdf_file (BytesIO): The PDF file in memory to be read.
-
+            input (PDFInput): A model containing the PDF file data as BytesIO.
         Returns:
-            str: Extracted text from all pages of the PDF.
+            str: Extracted text from all pages of the PDF or an error message if the extraction fails.
         """
         try:
-            reader = PyPDF2.PdfReader(pdf_file)
-            text = [page.extract_text() for page in reader.pages if page.extract_text() is not None]
+            reader = PyPDF2.PdfReader(input.pdf_file)
+            text = []
+            for page in reader.pages:
+                extracted_text = page.extract_text()
+                if extracted_text:
+                    text.append(extracted_text)
             return "\n".join(text)
         except Exception as e:
             return f"Failed to process PDF: {str(e)}"

@@ -42,21 +42,19 @@ if doc_1 and doc_2:
             arbitrary_types_allowed = True
 
     @tool("custom_pdf_reader_tool")
-    def custom_pdf_reader_tool(input: PDFInput) -> str:
+    def custom_pdf_reader_tool(pdf_file: BytesIO) -> str:
         """
-        Custom tool to extract text from a PDF file uploaded by the user.
+        Extracts text from the uploaded PDF files using PyPDF2.
+
         Args:
-            input (PDFInput): A model containing the PDF file data as BytesIO.
+            pdf_file (BytesIO): A BytesIO stream containing the PDF file data.
+
         Returns:
-            str: Extracted text from all pages of the PDF or an error message if the extraction fails.
+            str: All text extracted from the PDF.
         """
         try:
-            reader = PyPDF2.PdfReader(input.pdf_file)
-            text = []
-            for page in reader.pages:
-                extracted_text = page.extract_text()
-                if extracted_text:
-                    text.append(extracted_text)
+            reader = PyPDF2.PdfReader(pdf_file)
+            text = [page.extract_text() for page in reader.pages if page.extract_text() is not None]
             return "\n".join(text)
         except Exception as e:
             return f"Failed to process PDF: {str(e)}"

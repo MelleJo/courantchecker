@@ -7,12 +7,25 @@ from crewai_tools import tool
 import pandas as pd
 import chromadb
 import base64
-from typing import Any
+from typing import Any, List
 import PyPDF2
 from PyPDF2 import PdfReader
 import tempfile
 import shutil
 import io
+from pydantic import BaseModel
+
+# Custom pydantic model for pd.DataFrame
+class DataFrameModel(BaseModel):
+    data: List[List[Any]]
+    columns: List[str]
+
+    @classmethod
+    def from_dataframe(cls, df: pd.DataFrame):
+        return cls(data=df.values.tolist(), columns=df.columns.tolist())
+
+    def to_dataframe(self):
+        return pd.DataFrame(self.data, columns=self.columns)
 
 api_key = st.secrets["OPENAI_API_KEY"]
 
@@ -43,7 +56,7 @@ if doc_1 and doc_2:
             return f"Failed to process PDF: {str(e)}"
 
     @tool("panda_dataframe_tool")
-    def panda_dataframe_tool(text: str) -> pd.DataFrame:
+    def panda_dataframe_tool(text: str) -> DataFrameModel:
         """
         Convert extracted text into a structured pandas DataFrame.
 
@@ -51,25 +64,26 @@ if doc_1 and doc_2:
             text (str): Text containing tab-separated values.
 
         Returns:
-            pd.DataFrame: Data organized as a DataFrame.
+            DataFrameModel: Data organized as a DataFrame.
         """
         rows = text.split("\n")
         df = pd.DataFrame([row.split("\t") for row in rows])
         df.set_index(df.columns[0], inplace=True)
         df.drop(df.columns[0], axis=1, inplace=True)
-        return df
+        return DataFrameModel.from_dataframe(df)
 
     @tool("pandas_to_excel_tool")
-    def pandas_to_excel_tool(df: pd.DataFrame) -> str:
+    def pandas_to_excel_tool(df_model: DataFrameModel) -> str:
         """
         Save DataFrame to an Excel file and provide a download link.
 
         Args:
-            df (pd.DataFrame): Data to be written to Excel.
+            df_model (DataFrameModel): Data to be written to Excel.
 
         Returns:
             str: A hyperlink to download the Excel file.
         """
+        df = df_model.to_dataframe()
         tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
         with pd.ExcelWriter(tmp_file.name, engine='xlsxwriter') as writer:
             df.to_excel(writer, index=False)
@@ -80,17 +94,19 @@ if doc_1 and doc_2:
         return f"<a href='data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{file_b64}' download='file.xlsx'>Download Excel file</a>"
 
     @tool("compare_dataframe_tool")
-    def compare_dataframe_tool(df1: pd.DataFrame, df2: pd.DataFrame) -> list:
+    def compare_dataframe_tool(df1: DataFrameModel, df2: DataFrameModel) -> list:
         """
         Compare two DataFrames and return the differences.
 
         Args:
-            df1 (pd.DataFrame): The first DataFrame.
-            df2 (pd.DataFrame): The second DataFrame to compare against.
+            df1 (DataFrameModel): The first DataFrame.
+            df2 (DataFrameModel): The second DataFrame to compare against.
 
         Returns:
             list: Differences between the two DataFrames.
         """
+        df1 = df1.to_dataframe()
+        df2 = df2.to_dataframe()
         return list(df1.compare(df2).dropna())
 
     # Form the crew with the defined agents using formatted strings for goals to prevent interpolation issues

@@ -1,26 +1,18 @@
 import streamlit as st
 from crewai import Agent
-# from crewai_tools import PDFSearchTool
 import os
 from crewai import Task
 from crewai import Crew, Process
 from crewai_tools import tool
 import pandas as pd
 import chromadb
-from pydantic import BaseModel
-import tempfile
-import shutil
-import xlsxwriter
 import base64
 from typing import Any
 import PyPDF2
 from PyPDF2 import PdfReader
-#from io import BytesIO
-from pydantic import BaseModel, validator
-
-
-
-
+import tempfile
+import shutil
+import io
 
 api_key = st.secrets["OPENAI_API_KEY"]
 
@@ -50,7 +42,6 @@ if doc_1 and doc_2:
         except Exception as e:
             return f"Failed to process PDF: {str(e)}"
 
-
     @tool("panda_dataframe_tool")
     def panda_dataframe_tool(text: str) -> pd.DataFrame:
         """
@@ -79,14 +70,13 @@ if doc_1 and doc_2:
         Returns:
             str: A hyperlink to download the Excel file.
         """
-        tmp_file = tempfile.NamedTemporaryFile(delete=False)
-        writer = pd.ExcelWriter(tmp_file.name, engine='xlsxwriter')
-        df.to_excel(writer, index=False)
-        writer.save()
+        tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
+        with pd.ExcelWriter(tmp_file.name, engine='xlsxwriter') as writer:
+            df.to_excel(writer, index=False)
         with open(tmp_file.name, "rb") as f:
             file_bytes = f.read()
         file_b64 = base64.b64encode(file_bytes).decode()
-        shutil.rmtree(os.path.dirname(tmp_file.name))
+        os.unlink(tmp_file.name)
         return f"<a href='data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{file_b64}' download='file.xlsx'>Download Excel file</a>"
 
     @tool("compare_dataframe_tool")

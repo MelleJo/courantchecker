@@ -14,7 +14,8 @@ import xlsxwriter
 import base64
 from typing import Any
 import PyPDF2
-from io import BytesIO
+from PyPDF2 import PdfReader
+#from io import BytesIO
 from pydantic import BaseModel, validator
 
 
@@ -25,39 +26,30 @@ api_key = st.secrets["OPENAI_API_KEY"]
 
 st.title("Courantchecker")
 
-doc_1 = st.file_uploader("Doc1", type="pdf")
-doc_2 = st.file_uploader("Doc2", type="pdf")
+doc_1 = st.file_uploader("Doc1", type=["pdf"])
+doc_2 = st.file_uploader("Doc2", type=["pdf"])
 
 if doc_1 and doc_2:
-    class PDFInput(BaseModel):
-        pdf_file: Any
-
-        @validator('pdf_file')
-        def check_file_type(cls, value):
-            if not isinstance(value, BytesIO):
-                raise TypeError("pdf_file must be a BytesIO object")
-            return value
-
-        class Config:
-            arbitrary_types_allowed = True
-
     @tool("custom_pdf_reader_tool")
-    def custom_pdf_reader_tool(pdf_file: BytesIO) -> str:
+    def custom_pdf_reader_tool(uploaded_file) -> str:
         """
         Extracts text from the uploaded PDF files using PyPDF2.
-
         Args:
-            pdf_file (BytesIO): A BytesIO stream containing the PDF file data.
-
+            uploaded_file: A file-like object containing the PDF file data.
         Returns:
             str: All text extracted from the PDF.
         """
         try:
-            reader = PyPDF2.PdfReader(pdf_file)
-            text = [page.extract_text() for page in reader.pages if page.extract_text() is not None]
+            reader = PdfReader(uploaded_file)
+            text = []
+            for page in reader.pages:
+                extracted_text = page.extract_text()
+                if extracted_text:
+                    text.append(extracted_text)
             return "\n".join(text)
         except Exception as e:
             return f"Failed to process PDF: {str(e)}"
+
 
     @tool("panda_dataframe_tool")
     def panda_dataframe_tool(text: str) -> pd.DataFrame:
@@ -164,14 +156,16 @@ if doc_1 and doc_2:
     )
 
     if st.button("Start Processing"):
-        result = crew.kickoff(inputs={'doc1': doc_1.getvalue(), 'doc2': doc_2.getvalue()})
-        if isinstance(result, str):
-            st.success(result)
-        elif isinstance(result, bytes):
-            st.success("The Excel file is ready to download")
-            href = f"<a href='data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{base64.b64encode(result).decode()}' download='comparison.xlsx'>Download Excel file</a>"
-            st.markdown(href, unsafe_allow_html=True)
-        else:
-            st.error("Something went wrong")
-else:
+        if doc_1 and doc_2:
+            # Assuming 'doc_1' and 'doc_2' are the files uploaded via Streamlit
+            result = crew.kickoff(inputs={'doc1': doc_1, 'doc2': doc_2})
+            if isinstance(result, str):
+                st.success(result)
+            elif isinstance(result, bytes):
+                st.success("The Excel file is ready to download")
+                href = f"<a href='data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{base64.b64encode(result).decode()}' download='comparison.xlsx'>Download Excel file</a>"
+                st.markdown(href, unsafe_allow_html=True)
+            else:
+                st.error("Something went wrong")
+
     st.warning("Please upload both PDF documents to start processing.")

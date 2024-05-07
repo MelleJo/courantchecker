@@ -13,7 +13,8 @@ from PyPDF2 import PdfReader
 import tempfile
 import shutil
 import io
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, validator, ValidationError
+import pydantic
 
 # Custom pydantic model for pd.DataFrame
 class DataFrameModel(BaseModel):
@@ -33,6 +34,9 @@ class DataFrameModel(BaseModel):
         if columns and len(row) != len(columns):
             raise ValueError(f"Row length ({len(row)}) does not match the number of columns ({len(columns)})")
         return row
+
+# Enable arbitrary_types_allowed for Pydantic
+pydantic.config.arbitrary_types_allowed = True
 
 api_key = st.secrets["OPENAI_API_KEY"]
 

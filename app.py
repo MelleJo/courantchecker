@@ -13,19 +13,18 @@ from PyPDF2 import PdfReader
 import tempfile
 import shutil
 import io
-from pydantic import BaseModel
+from pydantic import BaseModel, create_model
 
-# Custom pydantic model for pd.DataFrame
-class DataFrameModel(BaseModel):
-    data: List[List[Any]]
-    columns: List[str]
+# Create a custom pydantic model to register the DataFrameModel class
+DataFrameModel = create_model(
+    "DataFrameModel",
+    data=(List[List[Any]], ...),
+    columns=(List[str], ...),
+)
 
-    @classmethod
-    def from_dataframe(cls, df: pd.DataFrame):
-        return cls(data=df.values.tolist(), columns=df.columns.tolist())
-
-    def to_dataframe(self):
-        return pd.DataFrame(self.data, columns=self.columns)
+# Add the class methods to the custom model
+DataFrameModel.from_dataframe = classmethod(lambda cls, df: cls(data=df.values.tolist(), columns=df.columns.tolist()))
+DataFrameModel.to_dataframe = lambda self: pd.DataFrame(self.data, columns=self.columns)
 
 api_key = st.secrets["OPENAI_API_KEY"]
 

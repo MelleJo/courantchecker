@@ -13,7 +13,6 @@ from PyPDF2 import PdfReader
 import tempfile
 import shutil
 import io
-import pydantic
 from pydantic import BaseModel, validator
 
 # Custom pydantic model for pd.DataFrame
@@ -34,9 +33,6 @@ class DataFrameModel(BaseModel):
         if columns and len(row) != len(columns):
             raise ValueError(f"Row length ({len(row)}) does not match the number of columns ({len(columns)})")
         return row
-
-# Register the custom validator with pydantic
-pydantic.create_model = pydantic.create_model_from_namedtuple
 
 api_key = st.secrets["OPENAI_API_KEY"]
 
@@ -82,42 +78,6 @@ if doc_1 and doc_2:
         df.set_index(df.columns[0], inplace=True)
         df.drop(df.columns[0], axis=1, inplace=True)
         return DataFrameModel.from_dataframe(df)
-
-    @tool("pandas_to_excel_tool")
-    def pandas_to_excel_tool(df_model: DataFrameModel) -> str:
-        """
-        Save DataFrame to an Excel file and provide a download link.
-
-        Args:
-            df_model (DataFrameModel): Data to be written to Excel.
-
-        Returns:
-            str: A hyperlink to download the Excel file.
-        """
-        df = df_model.to_dataframe()
-        tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
-        with pd.ExcelWriter(tmp_file.name, engine='xlsxwriter') as writer:
-            df.to_excel(writer, index=False)
-        with open(tmp_file.name, "rb") as f:
-            file_bytes = f.read()
-        file_b64 = base64.b64encode(file_bytes).decode()
-        os.unlink(tmp_file.name)
-        return f"<a href='data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{file_b64}' download='file.xlsx'>Download Excel file</a>"
-
-    @tool("compare_dataframe_tool")
-    def compare_dataframe_tool(df1: DataFrameModel, df2: DataFrameModel) -> list:
-        """
-        Compare two DataFrames and return the differences.
-
-        Args:
-            df1 (DataFrameModel): The first DataFrame.
-            df2 (DataFrameModel): The second DataFrame to compare against.
-
-        Returns:
-            list: Differences between the two DataFrames.
-        """
-        df1 = df1.to_dataframe()
-        df2 = df2.to_dataframe()
 
     @tool("pandas_to_excel_tool")
     def pandas_to_excel_tool(df_model: DataFrameModel) -> str:

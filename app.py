@@ -13,13 +13,14 @@ from PyPDF2 import PdfReader
 import tempfile
 import shutil
 import io
-from pydantic import BaseModel, validator, ValidationError
+from pydantic import BaseModel, validator, ValidationError, Field
 import pydantic
 
 # Custom pydantic model for pd.DataFrame
+
 class DataFrameModel(BaseModel):
-    data: List[List[Any]]
-    columns: List[str]
+    data: List[List[Any]] = Field(...)
+    columns: List[str] = Field(...)
 
     @classmethod
     def from_dataframe(cls, df: pd.DataFrame):
@@ -34,6 +35,9 @@ class DataFrameModel(BaseModel):
         if columns and len(row) != len(columns):
             raise ValueError(f"Row length ({len(row)}) does not match the number of columns ({len(columns)})")
         return row
+
+    class Config:
+        arbitrary_types_allowed = True
 
 # Enable arbitrary_types_allowed for Pydantic
 pydantic.config.arbitrary_types_allowed = True
